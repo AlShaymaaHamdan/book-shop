@@ -5,7 +5,7 @@ FROM python:3.15.0a2-slim-trixie
 RUN mkdir /app
  
 # Set the working directory inside the container
-WORKDIR /app
+WORKDIR /book-shop
  
 # Set environment variables 
 # Prevents Python from writing pyc files to disk
@@ -22,6 +22,7 @@ COPY /book-shop/requirements.txt  /app/
 # run this command to install all dependencies 
 RUN pip install --no-cache-dir -r /book_shop/requirements.txt
  
+WORKDIR /app
 
 # Copy wheel and install it
 COPY dist/*.whl /app/
