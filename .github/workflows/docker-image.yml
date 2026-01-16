@@ -15,7 +15,7 @@ jobs:
         - name: Checkout repo
           uses: actions/checkout@v4
 
-        - name: Install tmolq
+        - name: Install tomlq
           run: pip install tomlq
 
         - name: Extract Version

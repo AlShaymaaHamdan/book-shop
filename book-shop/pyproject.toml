@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "book-shop"
-version = "0.1.0-test"
+version = "0.1.0"
 description = ""
 authors = ["Ayat <alkayedayat93@gmail.com>"]
 packages = [{ include = "book_shop" }]
@@ -10,7 +10,7 @@ python = "^3.9"
 Django = "^4.0.4"
 gunicorn = "^23.0.0"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "^5.2"
 
 [build-system]
