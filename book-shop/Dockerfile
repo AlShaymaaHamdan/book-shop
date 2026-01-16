@@ -20,7 +20,7 @@ RUN pip install --upgrade pip
 COPY /book-shop/requirements.txt  /app/
  
 # run this command to install all dependencies 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r /book_shop/requirements.txt
  
 
 # Copy wheel and install it
