@@ -103,11 +103,11 @@ jobs:
           name: django-dist
           path: book-shop/dist
 
-      - name: Extract app artifact
-        run: |
-          mkdir -p app
-          ls book-shop/dist/*.tar.gz
-          tar -xzf  book-shop/dist/*.tar.gz -C app
+      # - name: Extract app artifact
+      #   run: |
+      #     mkdir -p app
+      #     ls book-shop/dist/*.tar.gz
+      #     tar -xzf  book-shop/dist/*.tar.gz -C app
               
       - name : Config AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
