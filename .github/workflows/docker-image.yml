@@ -106,8 +106,8 @@ jobs:
       - name: Extract app artifact
         run: |
           mkdir -p app
-          ls *.tar.gz
-          tar -xzf  *.tar.gz -C app
+          ls book-shop/dist/*.tar.gz
+          tar -xzf  book-shop/dist*.tar.gz -C app
               
       - name : Config AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
