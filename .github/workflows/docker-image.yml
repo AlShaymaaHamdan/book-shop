@@ -70,43 +70,69 @@ jobs:
           name: django-dist
           path: book-shop/dist/*
 
-#     docker:
-#       runs-on: ubuntu-latest
-#       needs: package
-#       steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v4
+      - name: debugging artifact
+        run: |
+            ls -l book-shop
+            ls -l book-shop/dist
+            
 
-#       - name: Download dist artifact
-#         uses: actions/download-artifact@v4
-#         with:
-#           name: django-dist
-#           path: book-shop/dist
+# Begin build job
+    docker:
+      runs-on: ubuntu-latest
+      needs: package
+      steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-#       - name: Log in to Docker Hub
-#         uses: docker/login-action@v2
-#         with:
-#           username: ${{ secrets.DOCKER_USERNAME }}
-#           password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: version
 
-#       - name: Build Docker image (with packaged app)
-#         run: docker build -t ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} book-shop
+      - name: Load version into enviroment
+        run: |
+            VERSION=$(grep 'version' version.yaml | cut -d'"' -f2)
+            echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-#       - name: Push Docker image
-#         run: docker push ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+      - name: Debugging the extracted Version
+        run: echo $VERSION
 
-#     deploy:
-#       runs-on: ubuntu-latest
-#       needs: build
-#       steps:
-#       - name: Deploy via SSH
-#         uses: appleboy/ssh-action@v1.0.3
-#         with:
-#           host: ${{ secrets.SERVER_IP }}
-#           username: ${{ secrets.SERVER_USER }}
-#           key: ${{ secrets.SERVER_SSH_KEY }}
-#           script: |
-#             docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-#             docker stop django-app || true
-#             docker rm django-app || true
-#             docker run -d -p 80:80 --name django-app ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: django-dist
+          path: book-shop/dist
+
+      - name : Config AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}   
+          
+      - name: Login into AWS ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Image 
+        uses: docker/build-push-action@v6 
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ secrets.AWS_ECR_URI }}/django-App:${{ env.VERSION }}
+         
+    # deploy:
+    #   runs-on: ubuntu-latest
+    #   needs: build
+    #   steps:
+    #   - name: Deploy via SSH
+    #     uses: appleboy/ssh-action@v1.0.3
+    #     with:
+    #       host: ${{ secrets.SERVER_IP }}
+    #       username: ${{ secrets.SERVER_USER }}
+    #       key: ${{ secrets.SERVER_SSH_KEY }}
+    #       script: |
+    #         docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+    #         docker stop django-app || true
+    #         docker rm django-app || true
+    #         docker run -d -p 80:80 --name django-app ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
