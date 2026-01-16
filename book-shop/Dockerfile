@@ -5,7 +5,7 @@ FROM python:3.15.0a2-slim-trixie
 RUN mkdir /app
  
 # Set the working directory inside the container
-WORKDIR /book-shop
+WORKDIR /app
  
 # Set environment variables 
 # Prevents Python from writing pyc files to disk
@@ -15,14 +15,9 @@ ENV PYTHONUNBUFFERED=1
  
 # Upgrade pip
 RUN pip install --upgrade pip 
- 
-# Copy the Django project  and install dependencies
-COPY requirements.txt  /app/
- 
-# run this command to install all dependencies 
-RUN pip install --no-cache-dir -r requirements.txt
- 
-WORKDIR /app
+
+# Install dependencies instead of requirements.txt
+RUN poetry install --no-root --only main
 
 # Copy wheel and install it
 COPY dist/*.whl /app/
