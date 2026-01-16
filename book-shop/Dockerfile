@@ -14,7 +14,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1 
  
 # Upgrade pip
-RUN pip install --upgrade pip 
+RUN pip install --upgrade pip && pip install poetry
 
 # Install dependencies instead of requirements.txt
 RUN poetry install --no-root --only main
