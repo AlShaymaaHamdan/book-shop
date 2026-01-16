@@ -34,30 +34,41 @@ jobs:
             name: version
             path: version.yaml
 
-# # Begin build job
-#     build:
-#       runs-on: ubuntu-latest
-#       steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v4
+# Begin build job
+    build:
+      runs-on: ubuntu-latest
+      needs: prepare
+      steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-#       - name: Setup Python
-#         uses: actions/setup-python@v5
-#         with:
-#           python-version: "3.12"
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: version
 
-#       - name: Install Poetry
-#         run: pip install poetry
+      - name: Load version into enviroment
+        run: |
+            VERSION=$(grep 'version' version.yaml | cut -d'"' -f2)
+            echo "VERSION=$VERSION" >> $GITHUB_ENV
 
-#       - name: Package Django app
-#         run: poetry build
-#         working-directory: ${{ github.workspace }}/book-shop
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-#       - name: Upload dist artifacts
-#         uses: actions/upload-artifact@v4
-#         with:
-#           name: django-dist
-#           path: book-shop/dist/*
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Package Django app
+        run: poetry build
+        working-directory: ${{ github.workspace }}/book-shop
+
+      - name: Upload dist artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: django-dist
+          path: book-shop/dist/*
 
 #     docker:
 #       runs-on: ubuntu-latest

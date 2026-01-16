@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "book-shop"
-version = "0.1.0"
+version = "0.1.0-test"
 description = ""
 authors = ["Ayat <alkayedayat93@gmail.com>"]
 packages = [{ include = "book_shop" }]
