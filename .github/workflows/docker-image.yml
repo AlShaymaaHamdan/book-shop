@@ -20,7 +20,7 @@ jobs:
 
         - name: Extract Version
           run : | 
-              VERSION=$(tomlq -r .version book-shop/pyproject.toml)
+              VERSION=$(tomlq -r .tool.poetry.version book-shop/pyproject.toml)
               echo "VERSION=$VERSION" >> $GITHUB_ENV
               echo "version: \"$VERSION\"" > version.yaml
               ls -l
