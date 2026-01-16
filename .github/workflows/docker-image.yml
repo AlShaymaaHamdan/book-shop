@@ -76,7 +76,7 @@ jobs:
             ls -l book-shop/dist
             
 
-# Begin build job
+# Begin docker job
     docker:
       runs-on: ubuntu-latest
       needs: build
@@ -103,6 +103,12 @@ jobs:
           name: django-dist
           path: book-shop/dist
 
+      - name: Extract app artifact
+        run: |
+          mkdir -p app
+          ls *.tar.gz
+          tar -xzf  *.tar.gz -C app
+              
       - name : Config AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -119,7 +125,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ secrets.AWS_ECR_URI }}/django-App:${{ env.VERSION }}
+          tags: ${{ secrets.AWS_ECR_URI }}/django-app:${{ env.VERSION }}
          
     # deploy:
     #   runs-on: ubuntu-latest
