@@ -25,12 +25,12 @@ RUN apt-get update && apt-get install -y \
 # Upgrade pip
 RUN pip install --upgrade pip && pip install poetry
 
-WORKDIR /app
+
 
 COPY pyproject.toml poetry.lock /app/
 # Install dependencies instead of requirements.txt
 RUN poetry install --no-root --only main
-
+WORKDIR /app
 # Copy wheel and install it
 COPY dist/*.whl /app/
 RUN pip install --no-cache-dir *.whl
