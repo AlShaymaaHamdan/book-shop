@@ -16,7 +16,8 @@ ENV PYTHONUNBUFFERED=1
 
 # Copy wheel and install it
 COPY book-shop/dist/*.whl /app/
-RUN pip install --no-cache-dir *.whl
+RUN ls
+RUN pip install --no-cache-dir book_shop-0.1.0.dev1-*.whl
  
 COPY . /app/
 # Expose the Django port
