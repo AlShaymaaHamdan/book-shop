@@ -102,6 +102,9 @@ jobs:
         with:
           name: django-dist
 
+      - name: debugging artifact
+        run: |
+            ls -l 
 
       # - name: Extract app artifact
       #   run: |
