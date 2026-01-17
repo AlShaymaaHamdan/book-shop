@@ -15,9 +15,7 @@ ENV PYTHONUNBUFFERED=1
 # RUN poetry install --no-root --only main
 
 # Copy wheel and install it
-COPY dist/*.whl /app/
-
-RUN lstat
+COPY *.whl /app/
 
 RUN pip install /app/*.whl
  
