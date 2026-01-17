@@ -68,7 +68,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: django-dist
-          path: dist/*
+          path: dist
 
       - name: debugging artifact
         run: |
