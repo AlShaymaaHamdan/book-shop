@@ -130,18 +130,40 @@ jobs:
           push: true
           tags: ${{ secrets.AWS_ECR_URI }}/django-app:${{ env.VERSION }}
          
-    # deploy:
-    #   runs-on: ubuntu-latest
-    #   needs: build
-    #   steps:
-    #   - name: Deploy via SSH
-    #     uses: appleboy/ssh-action@v1.0.3
-    #     with:
-    #       host: ${{ secrets.SERVER_IP }}
-    #       username: ${{ secrets.SERVER_USER }}
-    #       key: ${{ secrets.SERVER_SSH_KEY }}
-    #       script: |
-    #         docker pull ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-    #         docker stop django-app || true
-    #         docker rm django-app || true
-    #         docker run -d -p 80:80 --name django-app ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+    deploy:
+      runs-on: ubuntu-latest
+      # if: github.ref == 'refs/heads/prod'
+      needs:
+        - docker
+        # - promote
+        # - push-promoted-image
+      steps:
+        - name: Checkout repo
+          uses: actions/checkout@v4
+        - name: Download artifact
+          uses: actions/download-artifact@v4
+          with:
+            name: version
+
+        - name: Load version into enviroment
+          run: |
+            VERSION=$(grep 'version' version.yaml | cut -d'"' -f2)
+            echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+        - name: ssh to the server
+          uses: appleboy/ssh-action@v1.0.3
+          with:
+            host: ${{ secrets.PUPLIC_IP }}
+            username: ${{ secrets.HOST_NAME }}
+            key: ${{ secrets.PRIVATE_KEY }}
+            script: |
+              echo "ECR Login"
+              aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+
+              echo "pull image"
+              docker pull ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ needs.promote.outputs.BASE_TAG }}
+              
+              # docker stop cicd-shaymaa
+              # docker rm cicd-shaymaa
+              
+              docker run -dp 8000:8000 --name ${{ env.IMAGE_NAME }} ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
