@@ -123,7 +123,7 @@ jobs:
         uses: docker/build-push-action@v6 
         with:
           context: .
-          file: /Dockerfile
+          file: book-shop/Dockerfile
           push: true
           tags: ${{ secrets.AWS_ECR_URI }}/django-app:${{ env.VERSION }}
          
