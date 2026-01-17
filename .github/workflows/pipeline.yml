@@ -163,7 +163,7 @@ jobs:
               echo "pull image"
               docker pull ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ needs.promote.outputs.BASE_TAG }}
               
-              # docker stop cicd-shaymaa
-              # docker rm cicd-shaymaa
+              docker stop ${{ env.IMAGE_NAME }}
+              docker rm ${{ env.IMAGE_NAME }}
               
               docker run -dp 8000:8000 --name ${{ env.IMAGE_NAME }} ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
