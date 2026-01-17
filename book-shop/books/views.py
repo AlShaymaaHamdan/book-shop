@@ -12,5 +12,5 @@ class BookDetailView(DetailView):
     model = Book
 
 class BookTemplateView(TemplateView):
-    template_name = 'book_template.html'
+    template_name = 'books/book_template.html'
     
