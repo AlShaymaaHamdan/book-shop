@@ -5,7 +5,7 @@ FROM python:3.15-rc-slim
 RUN mkdir /app
  
 # Set the working directory inside the container
-
+WORKDIR /app
  
 # Set environment variables 
 # Prevents Python from writing pyc files to disk
@@ -23,14 +23,13 @@ RUN apt-get update && apt-get install -y \
  && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip
-RUN pip install --upgrade pip && pip install poetry
+RUN pip install --upgrade pip 
+# && pip install poetry
 
+# COPY pyproject.toml poetry.lock /app/
+# # Install dependencies instead of requirements.txt
+# RUN poetry install --no-root --only main
 
-
-COPY pyproject.toml poetry.lock /app/
-# Install dependencies instead of requirements.txt
-RUN poetry install --no-root --only main
-WORKDIR /app
 # Copy wheel and install it
 COPY dist/*.whl /app/
 RUN pip install --no-cache-dir *.whl
