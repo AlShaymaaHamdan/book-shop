@@ -7,7 +7,9 @@ packages = [
     { include = "book_shop" },
     { include = "books" }
 ]
-
+include = [
+    "books/templates/**",
+]
 [tool.poetry.dependencies]
 python = "^3.9"
 Django = "^4.0.4"
