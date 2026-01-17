@@ -21,3 +21,9 @@ pytest = "^5.2"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+books = ["templates/**/*.html"]
