@@ -106,13 +106,6 @@ jobs:
         run: |
             ls -l 
             
-
-      # - name: Extract app artifact
-      #   run: |
-      #     mkdir -p app
-      #     ls book-shop/dist/*.tar.gz
-      #     tar -xzf  book-shop/dist/*.tar.gz -C app
-              
       - name : Config AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -130,17 +123,55 @@ jobs:
           file: book-shop/Dockerfile
           push: true
           tags: ${{ secrets.AWS_ECR_URI }}/django-app:${{ env.VERSION }}
-         
+
+    setup-server:
+      runs-on: ubuntu-latest
+      needs: docker
+      steps:
+        - name: Checkout repo
+          uses: actions/checkout@v4
+        - name: Copy setup-server via SSH
+          uses: appleboy/scp-action@v1
+          with:
+            host: ${{ secrets.PUPLIC_IP }}
+            username: ${{ secrets.HOST_NAME }}
+            key: ${{ secrets.PRIVATE_KEY }}
+            source: "setup-server.sh"
+            target: .
+
+        - name: Copy files via SSH
+          uses: appleboy/scp-action@v1
+          with:
+            host: ${{ secrets.PUPLIC_IP }}
+            username: ${{ secrets.HOST_NAME }}
+            key: ${{ secrets.PRIVATE_KEY }}
+            source: "bookshop.conf"
+            target: /etc/nginx/sites-available
+
+        - name: ssh to the server & ln bookshop.conf
+          uses: appleboy/ssh-action@v1.0.3
+          with:
+            host: ${{ secrets.PUPLIC_IP }}
+            username: ${{ secrets.HOST_NAME }}
+            key: ${{ secrets.PRIVATE_KEY }}
+            script: |
+            # chmod and run script
+          #     sudo ln -s /etc/nginx/sites-available/bookshop.conf /etc/nginx/sites-enabled/
+          #     sudo systemctl reload nginx
+             
+
     deploy:
       runs-on: ubuntu-latest
       # if: github.ref == 'refs/heads/prod'
       needs:
         - docker
+        - setup-server
         # - promote
         # - push-promoted-image
       steps:
         - name: Checkout repo
           uses: actions/checkout@v4
+
         - name: Download artifact
           uses: actions/download-artifact@v4
           with:
