@@ -101,7 +101,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: django-dist
-          path: book-shop/dist/
+
 
       # - name: Extract app artifact
       #   run: |
