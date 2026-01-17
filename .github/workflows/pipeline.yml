@@ -73,7 +73,7 @@ jobs:
       - name: debugging artifact
         run: |
             ls -l book-shop
-            ls -l book-shop/dist
+            ls -l dist
             
 
 # Begin docker job
@@ -101,7 +101,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: django-dist
-          path: book-shop/dist
+          path: dist
 
       # - name: Extract app artifact
       #   run: |
@@ -123,7 +123,7 @@ jobs:
         uses: docker/build-push-action@v6 
         with:
           context: .
-          file: ./book-shop/Dockerfile
+          file: /Dockerfile
           push: true
           tags: ${{ secrets.AWS_ECR_URI }}/django-app:${{ env.VERSION }}
          
