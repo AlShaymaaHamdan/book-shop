@@ -1,5 +1,5 @@
 # Use the official Python runtime image
-FROM python:3.15.0a2-slim-trixie
+FROM python:3.15-rc-slim
  
 # Create the app directory
 RUN mkdir /app
