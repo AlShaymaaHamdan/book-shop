@@ -13,6 +13,15 @@ ENV PYTHONDONTWRITEBYTECODE=1
 #Prevents Python from buffering stdout and stderr
 ENV PYTHONUNBUFFERED=1 
  
+# Install system dependencies needed for cffi / zstandard
+RUN apt-get update && apt-get install -y \
+    gcc \
+    build-essential \
+    libffi-dev \
+    python3-dev \
+    curl \
+ && rm -rf /var/lib/apt/lists/*
+
 # Upgrade pip
 RUN pip install --upgrade pip && pip install poetry
 
