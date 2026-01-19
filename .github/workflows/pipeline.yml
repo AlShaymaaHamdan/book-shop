@@ -182,7 +182,7 @@ jobs:
 
                 LATEST_TAG=$(echo "$LATEST_TAG" | tr -d '"')
                 echo "Latest_tag = $LATEST_TAG"
-                export BASE_TAG=$(echo "$LATEST_TAG" | cut -d 'd' -f1 | tr -d '"')
+                export BASE_TAG=$(echo "$LATEST_TAG" | cut -d '.d' -f1 | tr -d '"')
                 echo "BASE_TAG=$BASE_TAG"
                 export LATEST_TAG=$LATEST_TAG
                 echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_OUTPUT
@@ -212,7 +212,7 @@ jobs:
         - name: Pull and push the image 
           run: |
               docker pull ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME}}:${{ needs.promote.outputs.LATEST_TAG }}
-              docker tag ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME}}:${{ needs.promote.outputs.LATEST_TAG }} ${{ secrets.AWS_ECR_URI }}/cicd-shaymaa:${{ needs.promote.outputs.BASE_TAG }}
+              docker tag ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME}}:${{ needs.promote.outputs.LATEST_TAG }} ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME}}:${{ needs.promote.outputs.BASE_TAG }}
               docker push ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME}}:${{ needs.promote.outputs.BASE_TAG }}
     deploy-dev:
       runs-on: ubuntu-latest
