@@ -305,6 +305,7 @@ jobs:
             script: |
               sudo mv bookshop.conf /etc/nginx/sites-available/ 
               sudo rm /etc/nginx/sites-enabled/default
+              sudo rm /etc/nginx/sites-available/default
               echo "linking sites-available and sites-enabled ..."
               sudo ln -s /etc/nginx/sites-available/bookshop.conf /etc/nginx/sites-enabled/
               echo "sites-available: "
@@ -343,6 +344,10 @@ jobs:
 
               # docker push ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:latest
               
+              kubectl set image deployment/${{ env.IMAGE_NAME }} \
+              ${{ env.IMAGE_NAME }}=${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ needs.promote.outputs.BASE_TAG }} \
+               --record
+
               cd k8s
               microk8s kubectl apply -f deployment.yaml
               microk8s kubectl apply -f service.yaml
