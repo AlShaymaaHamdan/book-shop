@@ -331,7 +331,7 @@ jobs:
             script: |
               echo "ECR Login"
               aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
-              kubectl create secret docker-registry ecr-secret \
+              microk8s kubectl create secret docker-registry ecr-secret \
                 --docker-server=${{ secrets.AWS_ECR_URI }} \
                 --docker-username=AWS \
                 --docker-password=$(aws ecr get-login-password --region ${{ secrets.AWS_REGION }})
