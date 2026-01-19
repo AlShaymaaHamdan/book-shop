@@ -68,8 +68,9 @@ NGINX is configured to route traffic to the updated pods.
 ![alt text](images/image-3.png)
 
 ## Workflow Explanation
-**Job**: prepare
-**Purpose**: Extract version information from pyproject.toml
+
+**Job**: prepare  
+**Purpose**: Extract version information from pyproject.toml  
 **Steps**:
 Checkout the repository
 Install tomlq to parse TOML files
@@ -79,11 +80,10 @@ Extract the version using tomlq and save it to:
 Debug the extracted version
 Upload version.yaml as an artifact
 
-**Job**:  build
-
-**Purpose**: Build and package the Django application
-**Dependencies**: prepare
-**Steps**:
+**Job**:  build  
+**Purpose**: Build and package the Django application  
+**Dependencies**: prepare  
+**Steps**:  
 Checkout code
 Download version.yaml artifact
 Load the version into environment variable VERSION
@@ -93,10 +93,10 @@ Package the Django app using poetry build
 - this wil create these 2 files: book_shop-0.1.0.dev1-py3-none-any.whl & book_shop-0.1.0.dev1.tar.gz
 Upload the built artifacts from book-shop/dist/
 
-**Job**: docker
-**Purpose**: Build Docker image and push to AWS ECR
-**Dependencies**: build
-**Steps**:
+**Job**: docker  
+**Purpose**: Build Docker image and push to AWS ECR  
+**Dependencies**: build  
+**Steps**:  
 Checkout code
 Download version.yaml and load VERSION
 Download built dist artifacts
@@ -140,30 +140,30 @@ Copies the built wheel file for the Django app into the container and installs i
 Exposes ports 4000 and 3000 for the application.
 Uses gunicorn to serve the Django app on all network interfaces.
 
-**Job**: promote
-**Purpose**: Promote the latest dev tag to a stable production tag
-**Dependencies**: docker
-**Runs only on**: prod branch
-**Steps**:
+**Job**: promote  
+**Purpose**: Promote the latest dev tag to a stable production tag  
+**Dependencies**: docker  
+**Runs only on**: prod branch  
+**Steps**:  
 Configure AWS credentials and login to ECR
 Identify the latest dev image tag from ECR (ex. Latest_tag = 0.1.0.dev1 & BASE_TAG=0.1.0)
 Derive the base tag for production
 Output LATEST_TAG and BASE_TAG for downstream jobs
 
-**Job**: push-promoted-image
-**Purpose**: Tag the promoted image and push to ECR
-**Dependencies**: promote
-**Runs only on**: prod branch
-**Steps**:
+**Job**: push-promoted-image  
+**Purpose**: Tag the promoted image and push to ECR  
+**Dependencies**: promote  
+**Runs only on**: prod branch  
+**Steps**:  
 Debug promote outputs (LATEST_TAG and BASE_TAG)
 Configure AWS credentials and login to ECR
 Pull the latest dev image (LATEST_TAG), tag it with the production tag (BASE_TAG), and push it to ECR Repo (django-app)
 
-**Job**: deploy-dev
-**Purpose**: Deploy the app to the development environment
-**Dependencies**: docker
-**Runs only on**: main branch
-**Steps**:
+**Job**: deploy-dev  
+**Purpose**: Deploy the app to the development environment  
+**Dependencies**: docker  
+**Runs only on**: main branch  
+**Steps**:  
 Checkout code and download version.yaml
 Load VERSION into environment
 SSH into server
@@ -173,11 +173,11 @@ SSH into server
 
 ![alt text](images/image.png)
 
-**Job**: deploy
-**Purpose**: Deploy the app to production (EC2 + Kubernetes + NGINX)
-**Dependencies**: promote, push-promoted-image
-**Runs only on**: prod branch
-**Steps**:
+**Job**: deploy  
+**Purpose**: Deploy the app to production (EC2 + Kubernetes + NGINX)  
+**Dependencies**: promote, push-promoted-image  
+**Runs only on**: prod branch  
+**Steps**:  
 Checkout code and download version.yaml
 Configure AWS credentials and login to ECR
 Copy bookshop.conf (NGINX config) via SCP and link to sites-enabled
@@ -225,7 +225,6 @@ The Service exposes the app externally using NodePort 30500, mapping external tr
 ├── k8s/                     # Kubernetes deployment manifests
 │   ├── deployment.yaml
 │   ├── service.yaml
-│   └── configmap.yaml
 ├── Dockerfile               # Container image build instructions
 ├── setup-server.sh          # Server setup scripts (NGINX, Docker, microk8s, AWS CLI)
 ├── bookshop.conf            # NGINX configuration
