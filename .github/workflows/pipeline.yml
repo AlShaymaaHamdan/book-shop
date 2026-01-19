@@ -182,7 +182,7 @@ jobs:
 
                 LATEST_TAG=$(echo "$LATEST_TAG" | tr -d '"')
                 echo "Latest_tag = $LATEST_TAG"
-                export BASE_TAG=$(echo "$LATEST_TAG" | cut -d '.d' -f1 | tr -d '"')
+                export BASE_TAG=$(echo "$LATEST_TAG" | sed 's/\.dev[0-9]\+$//')
                 echo "BASE_TAG=$BASE_TAG"
                 export LATEST_TAG=$LATEST_TAG
                 echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_OUTPUT
@@ -284,7 +284,7 @@ jobs:
             username: ${{ secrets.HOST_NAME }}
             key: ${{ secrets.PRIVATE_KEY }}
             source: "bookshop.conf"
-            target: /etc/nginx/sites-available
+            target: .
 
         - name: ssh to the server & ln bookshop.conf
           uses: appleboy/ssh-action@v1.0.3
@@ -293,6 +293,7 @@ jobs:
             username: ${{ secrets.HOST_NAME }}
             key: ${{ secrets.PRIVATE_KEY }}
             script: |
+              sudo mv bookshop.conf /etc/nginx/sites-available/ 
               echo "linking sites-available and sites-enabled ..."
               sudo ln -s /etc/nginx/sites-available/bookshop.conf /etc/nginx/sites-enabled/
               echo "sites-available: "
