@@ -344,7 +344,7 @@ jobs:
 
               # docker push ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:latest
               
-              kubectl set image deployment/${{ env.IMAGE_NAME }} \
+              microk8s kubectl set image deployment/${{ env.IMAGE_NAME }} \
               ${{ env.IMAGE_NAME }}=${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ needs.promote.outputs.BASE_TAG }} \
                --record
 
