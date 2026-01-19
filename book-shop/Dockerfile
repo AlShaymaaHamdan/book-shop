@@ -20,7 +20,9 @@ COPY *.whl /app/
 RUN pip install /app/*.whl
  
 # Expose the Django port
-EXPOSE 8000
- 
+EXPOSE 4000
+EXPOSE 3000
+
 # Run Django’s development server
-CMD ["gunicorn", "book_shop.wsgi:application", "--bind", "0.0.0.0:8000"]
+ENTRYPOINT ["gunicorn"]
+CMD ["book_shop.wsgi:application", "--bind", "0.0.0.0:4000"]

@@ -124,7 +124,7 @@ jobs:
           push: true
           tags: ${{ secrets.AWS_ECR_URI }}/django-app:${{ env.VERSION }}
 
-    setup-server:
+    setup-server: #remove this
       runs-on: ubuntu-latest
       needs: docker
       steps:
@@ -139,33 +139,86 @@ jobs:
             source: "setup-server.sh"
             target: .
 
-        - name: Copy files via SSH
-          uses: appleboy/scp-action@v1
-          with:
-            host: ${{ secrets.PUPLIC_IP }}
-            username: ${{ secrets.HOST_NAME }}
-            key: ${{ secrets.PRIVATE_KEY }}
-            source: "bookshop.conf"
-            target: /etc/nginx/sites-available
+        
 
-        - name: ssh to the server & ln bookshop.conf
-          uses: appleboy/ssh-action@v1.0.3
-          with:
-            host: ${{ secrets.PUPLIC_IP }}
-            username: ${{ secrets.HOST_NAME }}
-            key: ${{ secrets.PRIVATE_KEY }}
-            script: |
-            # chmod and run script
-          #     sudo ln -s /etc/nginx/sites-available/bookshop.conf /etc/nginx/sites-enabled/
-          #     sudo systemctl reload nginx
-             
-
-    deploy:
+    promote:
       runs-on: ubuntu-latest
-      # if: github.ref == 'refs/heads/prod'
+      if: github.ref == 'refs/heads/prod'
+      needs: docker
+      outputs:
+        BASE_TAG: ${{ steps.promote.outputs.BASE_TAG }}
+        LATEST_TAG: ${{ steps.promote.outputs.LATEST_TAG }}
+
+      steps:
+         - name: Checkout repo
+           uses: actions/checkout@v4
+
+         - name : Config AWS credentials
+           uses: aws-actions/configure-aws-credentials@v4
+           with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: ${{ secrets.AWS_REGION }}   
+            
+         - name: Login into AWS ecr
+           uses: aws-actions/amazon-ecr-login@v2
+
+         - name: Promote the latest dev tag
+           id: promote
+           env: 
+              AWS_REGION: ${{ secrets.AWS_REGION }}
+              AWS_ECR_URI: ${{ secrets.AWS_ECR_URI }}
+           run: |
+                LATEST_TAG=$(aws ecr describe-images \
+                  --repository-name ${{ env.IMAGE_NAME}} \
+                  --region us-west-2 \
+                  --output json \
+                | jq -r '
+                    .imageDetails[]
+                    | select(.imageTags != null)
+                    | select([.imageTags[] | contains("test")] | any)
+                    | {pushedAt: .imagePushedAt, tag: (.imageTags[] | select(contains("test")))}
+                  ' | jq -s 'sort_by(.pushedAt) | last.tag')
+
+                LATEST_TAG=$(echo "$LATEST_TAG" | tr -d '"')
+                echo "Latest_tag = $LATEST_TAG"
+                export BASE_TAG=$(echo "$LATEST_TAG" | cut -d 'd' -f1 | tr -d '"')
+                echo "BASE_TAG=$BASE_TAG"
+                export LATEST_TAG=$LATEST_TAG
+                echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_OUTPUT
+                echo "BASE_TAG=$BASE_TAG" >> $GITHUB_OUTPUT
+
+    push-promoted-image:
+        runs-on: ubuntu-latest
+        if: github.ref == 'refs/heads/prod'
+        needs: promote
+
+        steps:
+        - name: Debug promote outputs
+          run: |
+            echo "LATEST_TAG=${{ needs.promote.outputs.LATEST_TAG }}"
+            echo "BASE_TAG=${{ needs.promote.outputs.BASE_TAG }}"
+
+        - name : Config AWS credintails
+          uses: aws-actions/configure-aws-credentials@v4
+          with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: ${{ secrets.AWS_REGION }} 
+
+        - name:  Login into AWS ecr
+          uses: aws-actions/amazon-ecr-login@v2
+
+        - name: Pull and push the image 
+          run: |
+              docker pull ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME}}:${{ needs.promote.outputs.LATEST_TAG }}
+              docker tag ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME}}:${{ needs.promote.outputs.LATEST_TAG }} ${{ secrets.AWS_ECR_URI }}/cicd-shaymaa:${{ needs.promote.outputs.BASE_TAG }}
+              docker push ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME}}:${{ needs.promote.outputs.BASE_TAG }}
+    deploy-dev:
+      runs-on: ubuntu-latest
+      if: github.ref == 'refs/heads/main'
       needs:
         - docker
-        - setup-server
         # - promote
         # - push-promoted-image
       steps:
@@ -193,9 +246,87 @@ jobs:
               aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
 
               echo "pull image"
+              docker pull ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+              
+
+              if docker ps -a --format '{{.Names}}' | grep -wq "${{ env.IMAGE_NAME }}"; then
+                echo "Container exists. Stopping and removing..."
+                docker stop ${{ env.IMAGE_NAME }} || true
+                docker rm ${{ env.IMAGE_NAME }} || true
+              fi
+              
+              docker run -dp 8080:4000 --name ${{ env.IMAGE_NAME }} ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+
+    deploy:
+      runs-on: ubuntu-latest
+      if: github.ref == 'refs/heads/prod'
+      needs:
+        - promote
+        - push-promoted-image
+      steps:
+        - name: Checkout repo
+          uses: actions/checkout@v4
+
+        - name: Download artifact
+          uses: actions/download-artifact@v4
+          with:
+            name: version
+
+        - name: Load version into enviroment
+          run: |
+            VERSION=$(grep 'version' version.yaml | cut -d'"' -f2)
+            echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+        - name: Copy nginx conf via SSH
+          uses: appleboy/scp-action@v1
+          with:
+            host: ${{ secrets.PUPLIC_IP }}
+            username: ${{ secrets.HOST_NAME }}
+            key: ${{ secrets.PRIVATE_KEY }}
+            source: "bookshop.conf"
+            target: /etc/nginx/sites-available
+
+        - name: ssh to the server & ln bookshop.conf
+          uses: appleboy/ssh-action@v1.0.3
+          with:
+            host: ${{ secrets.PUPLIC_IP }}
+            username: ${{ secrets.HOST_NAME }}
+            key: ${{ secrets.PRIVATE_KEY }}
+            script: |
+              echo "linking sites-available and sites-enabled ..."
+              sudo ln -s /etc/nginx/sites-available/bookshop.conf /etc/nginx/sites-enabled/
+              echo "sites-available: "
+              ls /etc/nginx/sites-available/
+              echo "sites-enabled: "
+              ls /etc/nginx/sites-enabled/
+              sudo systemctl reload nginx
+
+        - name: Copy k8s manifests via SSH
+          uses: appleboy/scp-action@v1
+          with:
+            host: ${{ secrets.PUPLIC_IP }}
+            username: ${{ secrets.HOST_NAME }}
+            key: ${{ secrets.PRIVATE_KEY }}
+            source: k8s/*
+            target: .
+
+        - name: ssh to the server
+          uses: appleboy/ssh-action@v1.0.3
+          with:
+            host: ${{ secrets.PUPLIC_IP }}
+            username: ${{ secrets.HOST_NAME }}
+            key: ${{ secrets.PRIVATE_KEY }}
+            script: |
+              echo "ECR Login"
+              aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+
+              echo "pull image"
               docker pull ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ needs.promote.outputs.BASE_TAG }}
               
-              docker stop ${{ env.IMAGE_NAME }}
-              docker rm ${{ env.IMAGE_NAME }}
+              docker tag ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ needs.promote.outputs.BASE_TAG }} ${{ env.IMAGE_NAME }}:latest
               
-              docker run -dp 8000:8000 --name ${{ env.IMAGE_NAME }} ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+              k apply -f deployment.yaml service.yaml
+
+              k get deployments
+              k get pods
+              k get svc
