@@ -325,7 +325,7 @@ jobs:
               docker pull ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ needs.promote.outputs.BASE_TAG }}
               
               docker tag ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ needs.promote.outputs.BASE_TAG }} ${{ env.IMAGE_NAME }}:latest
-              
+              cd /k8s
               microk8s kubectl apply -f deployment.yaml
               microk8s kubectl apply -f service.yaml
 
