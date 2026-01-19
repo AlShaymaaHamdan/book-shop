@@ -325,7 +325,7 @@ jobs:
               echo "pull image"
               docker pull ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ needs.promote.outputs.BASE_TAG }}
               
-              docker tag ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ needs.promote.outputs.BASE_TAG }} ${{ env.IMAGE_NAME }}:latest
+              docker tag ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ needs.promote.outputs.BASE_TAG }} ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:latest
 
               docker push ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:latest
               docker pull ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:latest
