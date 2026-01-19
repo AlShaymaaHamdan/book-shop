@@ -124,22 +124,20 @@ jobs:
           push: true
           tags: ${{ secrets.AWS_ECR_URI }}/django-app:${{ env.VERSION }}
 
-    setup-server: #remove this
-      runs-on: ubuntu-latest
-      needs: docker
-      steps:
-        - name: Checkout repo
-          uses: actions/checkout@v4
-        - name: Copy setup-server via SSH
-          uses: appleboy/scp-action@v1
-          with:
-            host: ${{ secrets.PUPLIC_IP }}
-            username: ${{ secrets.HOST_NAME }}
-            key: ${{ secrets.PRIVATE_KEY }}
-            source: "setup-server.sh"
-            target: .
-
-        
+    # setup-server: #remove this
+    #   runs-on: ubuntu-latest
+    #   needs: docker
+    #   steps:
+    #     - name: Checkout repo
+    #       uses: actions/checkout@v4
+    #     - name: Copy setup-server via SSH
+    #       uses: appleboy/scp-action@v1
+    #       with:
+    #         host: ${{ secrets.PUPLIC_IP }}
+    #         username: ${{ secrets.HOST_NAME }}
+    #         key: ${{ secrets.PRIVATE_KEY }}
+    #         source: "setup-server.sh"
+    #         target: .
 
     promote:
       runs-on: ubuntu-latest
