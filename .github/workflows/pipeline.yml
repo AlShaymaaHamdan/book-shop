@@ -176,7 +176,7 @@ jobs:
                 | jq -r '
                     .imageDetails[]
                     | select(.imageTags != null)
-                    | select([.imageTags[] | contains("test")] | any)
+                    | select([.imageTags[] | contains("dev")] | any)
                     | {pushedAt: .imagePushedAt, tag: (.imageTags[] | select(contains("test")))}
                   ' | jq -s 'sort_by(.pushedAt) | last.tag')
 
