@@ -139,6 +139,8 @@ jobs:
     #         source: "setup-server.sh"
     #         target: .
 
+        
+
     promote:
       runs-on: ubuntu-latest
       if: github.ref == 'refs/heads/prod'
@@ -174,13 +176,13 @@ jobs:
                 | jq -r '
                     .imageDetails[]
                     | select(.imageTags != null)
-                    | select([.imageTags[] | contains("test")] | any)
-                    | {pushedAt: .imagePushedAt, tag: (.imageTags[] | select(contains("test")))}
+                    | select([.imageTags[] | contains("dev")] | any)
+                    | {pushedAt: .imagePushedAt, tag: (.imageTags[] | select(contains("dev")))}
                   ' | jq -s 'sort_by(.pushedAt) | last.tag')
 
                 LATEST_TAG=$(echo "$LATEST_TAG" | tr -d '"')
                 echo "Latest_tag = $LATEST_TAG"
-                export BASE_TAG=$(echo "$LATEST_TAG" | cut -d 'd' -f1 | tr -d '"')
+                export BASE_TAG=$(echo "$LATEST_TAG" | sed 's/\.dev[0-9]\+$//')
                 echo "BASE_TAG=$BASE_TAG"
                 export LATEST_TAG=$LATEST_TAG
                 echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_OUTPUT
@@ -210,7 +212,7 @@ jobs:
         - name: Pull and push the image 
           run: |
               docker pull ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME}}:${{ needs.promote.outputs.LATEST_TAG }}
-              docker tag ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME}}:${{ needs.promote.outputs.LATEST_TAG }} ${{ secrets.AWS_ECR_URI }}/cicd-shaymaa:${{ needs.promote.outputs.BASE_TAG }}
+              docker tag ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME}}:${{ needs.promote.outputs.LATEST_TAG }} ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME}}:${{ needs.promote.outputs.BASE_TAG }}
               docker push ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME}}:${{ needs.promote.outputs.BASE_TAG }}
     deploy-dev:
       runs-on: ubuntu-latest
@@ -270,6 +272,16 @@ jobs:
           with:
             name: version
 
+        - name : Config AWS credintails
+          uses: aws-actions/configure-aws-credentials@v4
+          with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: ${{ secrets.AWS_REGION }} 
+
+        - name:  Login into AWS ecr
+          uses: aws-actions/amazon-ecr-login@v2
+
         - name: Load version into enviroment
           run: |
             VERSION=$(grep 'version' version.yaml | cut -d'"' -f2)
@@ -282,7 +294,7 @@ jobs:
             username: ${{ secrets.HOST_NAME }}
             key: ${{ secrets.PRIVATE_KEY }}
             source: "bookshop.conf"
-            target: /etc/nginx/sites-available
+            target: .
 
         - name: ssh to the server & ln bookshop.conf
           uses: appleboy/ssh-action@v1.0.3
@@ -291,6 +303,9 @@ jobs:
             username: ${{ secrets.HOST_NAME }}
             key: ${{ secrets.PRIVATE_KEY }}
             script: |
+              sudo mv bookshop.conf /etc/nginx/sites-available/ 
+              sudo rm /etc/nginx/sites-enabled/default
+              sudo rm /etc/nginx/sites-available/default
               echo "linking sites-available and sites-enabled ..."
               sudo ln -s /etc/nginx/sites-available/bookshop.conf /etc/nginx/sites-enabled/
               echo "sites-available: "
@@ -317,14 +332,25 @@ jobs:
             script: |
               echo "ECR Login"
               aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+              microk8s kubectl create secret docker-registry ecr-secret \
+                --docker-server=${{ secrets.AWS_ECR_URI }} \
+                --docker-username=AWS \
+                --docker-password=$(aws ecr get-login-password --region ${{ secrets.AWS_REGION }})
 
-              echo "pull image"
-              docker pull ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ needs.promote.outputs.BASE_TAG }}
+              # echo "pull image"
+              # docker pull ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ needs.promote.outputs.BASE_TAG }}
               
-              docker tag ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ needs.promote.outputs.BASE_TAG }} ${{ env.IMAGE_NAME }}:latest
-              
-              k apply -f deployment.yaml service.yaml
+              # docker tag ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ needs.promote.outputs.BASE_TAG }} ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:latest
 
-              k get deployments
-              k get pods
-              k get svc
+              # docker push ${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:latest
+              cd k8s
+              microk8s kubectl apply -f deployment.yaml
+
+              microk8s kubectl set image deployment/${{ env.IMAGE_NAME }} ${{ env.IMAGE_NAME }}=${{ secrets.AWS_ECR_URI }}/${{ env.IMAGE_NAME }}:${{ needs.promote.outputs.BASE_TAG }}
+
+              
+              microk8s kubectl apply -f service.yaml
+
+              microk8s kubectl get deployments
+              microk8s kubectl get pods
+              microk8s kubectl get svc

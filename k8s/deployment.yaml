@@ -11,10 +11,12 @@ spec:
       labels:
         app: django-app
     spec:
+      imagePullSecrets:
+          - name: ecr-secret
       containers:
       - name: django-app
-        image: django-app
-        imagePullPolicy: Never
+        image: 134943601651.dkr.ecr.us-west-2.amazonaws.com/django-app
+        imagePullPolicy: Always
         ports:
           - containerPort: 3000
         resources:
