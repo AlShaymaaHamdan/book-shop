@@ -79,6 +79,7 @@ Extract the version using tomlq and save it to:
 - version.yaml artifact for downstream jobs
 Debug the extracted version
 Upload version.yaml as an artifact
+______
 
 **Job**:  build  
 **Purpose**: Build and package the Django application  
@@ -92,6 +93,7 @@ Install poetry for dependency management
 Package the Django app using poetry build
 - this wil create these 2 files: book_shop-0.1.0.dev1-py3-none-any.whl & book_shop-0.1.0.dev1.tar.gz
 Upload the built artifacts from book-shop/dist/
+______
 
 **Job**: docker  
 **Purpose**: Build Docker image and push to AWS ECR  
@@ -139,6 +141,7 @@ Sets the working directory inside the container to /app.
 Copies the built wheel file for the Django app into the container and installs it.
 Exposes ports 4000 and 3000 for the application.
 Uses gunicorn to serve the Django app on all network interfaces.
+______
 
 **Job**: promote  
 **Purpose**: Promote the latest dev tag to a stable production tag  
@@ -150,6 +153,8 @@ Identify the latest dev image tag from ECR (ex. Latest_tag = 0.1.0.dev1 & BASE_T
 Derive the base tag for production
 Output LATEST_TAG and BASE_TAG for downstream jobs
 
+______
+
 **Job**: push-promoted-image  
 **Purpose**: Tag the promoted image and push to ECR  
 **Dependencies**: promote  
@@ -158,6 +163,7 @@ Output LATEST_TAG and BASE_TAG for downstream jobs
 Debug promote outputs (LATEST_TAG and BASE_TAG)
 Configure AWS credentials and login to ECR
 Pull the latest dev image (LATEST_TAG), tag it with the production tag (BASE_TAG), and push it to ECR Repo (django-app)
+______
 
 **Job**: deploy-dev  
 **Purpose**: Deploy the app to the development environment  
@@ -172,6 +178,8 @@ SSH into server
 - Run a new container on port 8080 (Website can be viewed using ec2-publicIP:8080)
 
 ![alt text](images/image.png)
+
+______
 
 **Job**: deploy  
 **Purpose**: Deploy the app to production (EC2 + Kubernetes + NGINX)  
@@ -191,6 +199,8 @@ SSH to server and:
 - Verify deployments, pods, and services (Website can be viewed using ec2-publicIP:80)
 ![alt text](images/image-1.png)
 ![alt text](images/image-2.png)
+
+______
 
 **NGINX Configuration** (bookshop.conf)
 This NGINX server block listens on port 80 and acts as a reverse proxy for the Django application running on Kubernetes. When a request comes to the server, NGINX forwards it to http://localhost:30500/, which is the NodePort exposed by the Kubernetes Service.
