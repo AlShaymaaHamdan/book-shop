@@ -72,40 +72,40 @@ NGINX is configured to route traffic to the updated pods.
 **Job**: prepare  
 **Purpose**: Extract version information from pyproject.toml  
 **Steps**:
-Checkout the repository
-Install tomlq to parse TOML files
-Extract the version using tomlq and save it to:
-- Environment variable VERSION
-- version.yaml artifact for downstream jobs
-Debug the extracted version
-Upload version.yaml as an artifact
+- Checkout the repository
+- Install tomlq to parse TOML files
+- Extract the version using tomlq and save it to:
+    - Environment variable VERSION
+    - version.yaml artifact for downstream jobs
+- Debug the extracted version
+- Upload version.yaml as an artifact
 ______
 
 **Job**:  build  
 **Purpose**: Build and package the Django application  
 **Dependencies**: prepare  
 **Steps**:  
-Checkout code
-Download version.yaml artifact
-Load the version into environment variable VERSION
-Setup Python environment (Python 3.12)
-Install poetry for dependency management
-Package the Django app using poetry build
-- this wil create these 2 files: book_shop-0.1.0.dev1-py3-none-any.whl & book_shop-0.1.0.dev1.tar.gz
-Upload the built artifacts from book-shop/dist/
+- Checkout code
+- Download version.yaml artifact
+- Load the version into environment variable VERSION
+- Setup Python environment (Python 3.12)
+- Install poetry for dependency management
+- Package the Django app using poetry build
+    - this wil create these 2 files: book_shop-0.1.0.dev1-py3-none-any.whl & book_shop-0.1.0.dev1.tar.gz
+- Upload the built artifacts from book-shop/dist/
 ______
 
 **Job**: docker  
 **Purpose**: Build Docker image and push to AWS ECR  
 **Dependencies**: build  
 **Steps**:  
-Checkout code
-Download version.yaml and load VERSION
-Download built dist artifacts
-Configure AWS credentials
-Login to AWS ECR
-Build Docker image using book-shop/Dockerfile
-Tag image with $VERSION and push to AWS ECR
+- Checkout code
+- Download version.yaml and load VERSION
+- Download built dist artifacts
+- Configure AWS credentials
+- Login to AWS ECR
+- Build Docker image using book-shop/Dockerfile
+- Tag image with $VERSION and push to AWS ECR
 
 **Dockerfile Overview**
 
@@ -136,11 +136,11 @@ ENTRYPOINT ["gunicorn"]
 CMD ["book_shop.wsgi:application", "--bind", "0.0.0.0:4000"]
 
 ```
-Uses an official lightweight Python image as the base.
-Sets the working directory inside the container to /app.
-Copies the built wheel file for the Django app into the container and installs it.
-Exposes ports 4000 and 3000 for the application.
-Uses gunicorn to serve the Django app on all network interfaces.
+- Uses an official lightweight Python image as the base.
+- Sets the working directory inside the container to /app.
+- Copies the built wheel file for the Django app into the container and installs it.
+- Exposes ports 4000 and 3000 for the application.
+- Uses gunicorn to serve the Django app on all network interfaces.
 ______
 
 **Job**: promote  
@@ -148,10 +148,10 @@ ______
 **Dependencies**: docker  
 **Runs only on**: prod branch  
 **Steps**:  
-Configure AWS credentials and login to ECR
-Identify the latest dev image tag from ECR (ex. Latest_tag = 0.1.0.dev1 & BASE_TAG=0.1.0)
-Derive the base tag for production
-Output LATEST_TAG and BASE_TAG for downstream jobs
+- Configure AWS credentials and login to ECR
+- Identify the latest dev image tag from ECR (ex. Latest_tag = 0.1.0.dev1 & BASE_TAG=0.1.0)
+- Derive the base tag for production
+- Output LATEST_TAG and BASE_TAG for downstream jobs
 
 ______
 
@@ -160,9 +160,9 @@ ______
 **Dependencies**: promote  
 **Runs only on**: prod branch  
 **Steps**:  
-Debug promote outputs (LATEST_TAG and BASE_TAG)
-Configure AWS credentials and login to ECR
-Pull the latest dev image (LATEST_TAG), tag it with the production tag (BASE_TAG), and push it to ECR Repo (django-app)
+- Debug promote outputs (LATEST_TAG and BASE_TAG)
+- Configure AWS credentials and login to ECR
+- Pull the latest dev image (LATEST_TAG), tag it with the production tag (BASE_TAG), and push it to ECR Repo (django-app)
 ______
 
 **Job**: deploy-dev  
@@ -170,12 +170,12 @@ ______
 **Dependencies**: docker  
 **Runs only on**: main branch  
 **Steps**:  
-Checkout code and download version.yaml
-Load VERSION into environment
-SSH into server
-- Login to ECR and pull Docker image
-- Stop and remove existing container if it exists
-- Run a new container on port 8080 (Website can be viewed using ec2-publicIP:8080)
+- Checkout code and download version.yaml
+- Load VERSION into environment
+- SSH into server
+    - Login to ECR and pull Docker image
+    - Stop and remove existing container if it exists
+    - Run a new container on port 8080 (Website can be viewed using ec2-publicIP:8080)
 
 ![alt text](images/image.png)
 
@@ -186,17 +186,17 @@ ______
 **Dependencies**: promote, push-promoted-image  
 **Runs only on**: prod branch  
 **Steps**:  
-Checkout code and download version.yaml
-Configure AWS credentials and login to ECR
-Copy bookshop.conf (NGINX config) via SCP and link to sites-enabled
-Reload NGINX
-Copy Kubernetes manifests via SCP (deployment.yaml & service.yaml)
-SSH to server and:
-- Login to ECR (This enables pulling the promoted Docker image that was pushed during the build stage)
-- Create Docker registry secret in microk8s (This ensures MicroK8s can securely authenticate and pull private images from AWS ECR)
-- Apply Kubernetes deployment and service manifests (This creates or updates Kubernetes resources such as: Deployments & Services)
-- Update deployment image with promoted tag (The deployment is patched with the new image tag promoted in the pipeline. This triggers a rolling update without downtime)
-- Verify deployments, pods, and services (Website can be viewed using ec2-publicIP:80)
+- Checkout code and download version.yaml
+- Configure AWS credentials and login to ECR
+- Copy bookshop.conf (NGINX config) via SCP and link to sites-enabled
+- Reload NGINX
+- Copy Kubernetes manifests via SCP (deployment.yaml & service.yaml)
+- SSH to server and:
+    - Login to ECR (This enables pulling the promoted Docker image that was pushed during the build stage)
+    - Create Docker registry secret in microk8s (This ensures MicroK8s can securely authenticate and pull private images from AWS ECR)
+    - Apply Kubernetes deployment and service manifests (This creates or updates Kubernetes resources such as: Deployments & Services)
+    - Update deployment image with promoted tag (The deployment is patched with the new image tag promoted in the pipeline. This triggers a rolling update without downtime)
+    - Verify deployments, pods, and services (Website can be viewed using ec2-publicIP:80)
 ![alt text](images/image-1.png)
 ![alt text](images/image-2.png)
 
